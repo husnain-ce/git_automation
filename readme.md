@@ -18,5 +18,5 @@ Note:
             "UpdateMessage": "Changes in v1.0.0: \r\n\r\n* Better everything!!"
         }
       The Tag and UpdateMessage need to be updated for updates to work
-    
+   
     - The updater will not update itself - the updater needs to be kept separate from the files to update
