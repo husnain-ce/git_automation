@@ -11,6 +11,9 @@ import win32serviceutil  # ServiceFramework and commandline helper
 import win32service  # Events
 import win32ts
 from win32con import MB_SERVICE_NOTIFICATION
+import win32security
+import ntsecuritycon as con
+import os
 import servicemanager  # Simple setup and logging
 
 TEMP_DIR = '.temp'
@@ -48,10 +51,13 @@ class UpdaterService:
                     shutil.copytree(os.path.join(self.args["Path"], ".git"), os.path.join(self.args["Path"], "temp.git"), copy_function=shutil.copyfile)
                     rmtree(os.path.join(self.args["Path"], ".git"))
                     os.rename(os.path.join(self.args["Path"], "temp.git"), os.path.join(self.args["Path"], ".git"))
+                    perms(os.path.join(self.args["Path"], ".git"))
             except Exception as ex:
                 console_session = win32ts.WTSGetActiveConsoleSessionId()
+                raise ex
                 error("Error while copying git folder, update service will not start", console_session)
                 logs.write(str(ex) + "\n")
+                return
         while self.running:
             servicemanager.LogInfoMsg("Service running...")
             try:
@@ -165,6 +171,7 @@ def pull(info):
                     error(f"Failed to get updates from the remote repo, check your internet connection and try again.", console_session)
                 if repo:
                     repo.free()
+                logs.write(str(ex) + "\n")
                 rmtree(os.path.join(path, "..", TEMP_DIR))
                 return
             # Check if there are any updates in remote by checking the autopublish file
@@ -204,6 +211,7 @@ def pull(info):
             except Exception as ex:
                 error(f"Failed to get updates from the remote repo, check your internet connection and try again.", console_session)
                 repo.free()
+                logs.write(str(ex) + "\n")
                 return
             if repo:
                 repo.free()
@@ -220,6 +228,17 @@ def rmtree(top):
         for name in dirs:
             os.rmdir(os.path.join(root, name))
     os.rmdir(top)
+
+def perms(directory):
+    userx, domain, type = win32security.LookupAccountName("", "Everyone")
+    for dirpath, dirnames, filenames in os.walk(directory):
+        for FILENAME in filenames:
+            os.chmod(dirpath + '\\' + FILENAME, stat.S_IWUSR)
+            sd = win32security.GetFileSecurity(dirpath + '\\' + FILENAME, win32security.DACL_SECURITY_INFORMATION)
+            dacl = sd.GetSecurityDescriptorDacl()   # instead of dacl = win32security.ACL()
+            dacl.AddAccessAllowedAce(win32security.ACL_REVISION, con.FILE_ALL_ACCESS, userx)
+            sd.SetSecurityDescriptorDacl(1, dacl, 0)
+            win32security.SetFileSecurity(dirpath + '\\' + FILENAME, win32security.DACL_SECURITY_INFORMATION, sd)
 
 def error(msg, console_session):
     win32ts.WTSSendMessage(win32ts.WTS_CURRENT_SERVER_HANDLE, console_session, "Error", msg, 0 | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION, 0, False)
@@ -275,13 +294,5 @@ def git_checkout(repo, branch='main'):
 
 if __name__ == '__main__':
     # UpdaterService().run()
-    # args = {}
-    # if os.path.exists(os.path.join("C:\\", "ProgramData", "autoupdater", ".autopublish.config")):
-    #     with open(os.path.join("C:\\", "ProgramData", "autoupdater", ".autopublish.config"), 'r') as f:
-    #         args = json.load(f)
-    # if os.path.exists(os.path.join(args.get("Path", ""), ".autopublish")):
-    #     with open(os.path.join(args.get("Path", ""), ".autopublish"), 'r') as f:
-    #         args.update(json.load(f))
-    # pull(args)
     init()
 

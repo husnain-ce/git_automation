@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--Wait', help='Wait duration (minutes)', type=int, default=defaults.get('Wait', 5))    
     parser.add_argument('Branch', help='Branch to watch', default=defaults.get('Branch', 'main'))
     parser.add_argument('Path', help='Project Folder', default=defaults.get('Path'), widget="FileChooser")
+    parser.add_argument('WinPassword', help='Windows Login Password', widget="PasswordField")
     parser.add_argument('--Username', help='Git Username', default=defaults.get('Username'))
     parser.add_argument('--Password', help='Git Password', default=defaults.get('Password'))
     args = parser.parse_args()
@@ -51,10 +52,17 @@ def main():
     process.wait()
     process = subprocess.Popen(["service.exe", "remove"], shell=False)
     process.wait()
-    process = subprocess.Popen(["service.exe", "--interactive", "--startup=auto", "install"], shell=False)
+    process = subprocess.Popen(["service.exe", f'--username={os.environ["COMPUTERNAME"]}\\{os.getlogin()}', f'--password={args.WinPassword}', "--startup=auto", "install"], shell=False)
     process.wait()
-    process = subprocess.Popen(["service.exe", "start"], shell=False)
+    process = subprocess.Popen(["sc", "start", "AppUpdaterService"], shell=False, stdout=subprocess.PIPE)
     process.wait()
-
+    output = process.communicate()[0].decode('utf-8')
+    if "FAILED" in output:
+        print("Unable to create & start service. Are you sure the password is correct?")
+        print("\nYou can manually create the service by running the following command:")
+        print(f'    service.exe --username="{os.environ["COMPUTERNAME"]}\\{os.getlogin()}" --password="MY PASSWORD" --startup=auto install')
+        print("If you are still having issues, please contact the developer.\n")
+        print(output)
+    
 if __name__ == "__main__":
     main()
