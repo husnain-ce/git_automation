@@ -113,7 +113,7 @@ def pull(info):
         if info.get("Username") and info.get("Password"):
             callbacks = RemoteCallbacks(info["Username"], info["Password"])
         # Get Changes
-        meta, path = {}, info.get("Path", None)
+        meta, path, repo = {}, info.get("Path", None), None
         try:
             # Is there a remote to pull from?
             if not "URL" in info or "Path" not in info:
@@ -131,7 +131,14 @@ def pull(info):
                 return
             # Git repo check, if not found, clone it
             if not os.path.exists(os.path.join(path, ".git")):
-                pygit2.clone_repository(info["URL"], os.path.join(path, "..", TEMP_DIR), callbacks=callbacks)
+                try:
+                    pygit2.clone_repository(info["URL"], os.path.join(path, "..", TEMP_DIR), callbacks=callbacks)
+                except pygit2.GitError as ex:
+                    if "401" in str(ex):
+                        error(f"Failed to clone the remote repo, check credentials.", console_session)
+                    else:
+                        error(f"Failed to clone the remote repo, reconfigure using config.exe", console_session)
+                    return
                 shutil.copytree(os.path.join(path, "..", TEMP_DIR), os.path.join(path), dirs_exist_ok=True)
                 rmtree(os.path.join(path, "..", TEMP_DIR))
                 return
@@ -143,7 +150,8 @@ def pull(info):
                 git_checkout(repo, info.get("Branch", "main"))
             except Exception as ex:
                 error(f"Failed to checkout, please reconfigure using config.exe", console_session)
-                repo.free()
+                if repo:
+                    repo.free()
                 rmtree(os.path.join(path, "..", TEMP_DIR))
                 return
             # Reset hard & pull
@@ -155,19 +163,22 @@ def pull(info):
                     error(f"Failed to get updates from the remote repo, check credentials.", console_session)
                 else:
                     error(f"Failed to get updates from the remote repo, check your internet connection and try again.", console_session)
-                repo.free()
+                if repo:
+                    repo.free()
                 rmtree(os.path.join(path, "..", TEMP_DIR))
                 return
             # Check if there are any updates in remote by checking the autopublish file
             if os.path.exists(os.path.join(path, "..", TEMP_DIR, ".autopublish")):
                 with open(os.path.join(path, "..", TEMP_DIR, ".autopublish"), 'r') as f:
                     meta = json.load(f)
-            repo.free()
+            if repo:
+                repo.free()
             rmtree(os.path.join(path, "..", TEMP_DIR))
         except Exception as ex:
             error(f"Failed to get updates into the parent {TEMP_DIR} folder, check permissions and try again.", console_session)
             logs.write(str(ex) + "\n")
-            repo.free()
+            if repo:
+                repo.free()
             return
         # Check if there are changes
         if info.get("Tag") == meta.get("Tag"):
@@ -194,7 +205,8 @@ def pull(info):
                 error(f"Failed to get updates from the remote repo, check your internet connection and try again.", console_session)
                 repo.free()
                 return
-            repo.free()
+            if repo:
+                repo.free()
             success(f"Updated to version {meta.get('Tag', 'v1.0.0')}", console_session)
         else:
             error(f"Denied an update to {meta.get('Tag', 'v1.0.0')} :(", console_session)
@@ -263,12 +275,13 @@ def git_checkout(repo, branch='main'):
 
 if __name__ == '__main__':
     # UpdaterService().run()
-    args = {}
-    if os.path.exists(os.path.join("C:\\", "ProgramData", "autoupdater", ".autopublish.config")):
-        with open(os.path.join("C:\\", "ProgramData", "autoupdater", ".autopublish.config"), 'r') as f:
-            args = json.load(f)
-    if os.path.exists(os.path.join(args.get("Path", ""), ".autopublish")):
-        with open(os.path.join(args.get("Path", ""), ".autopublish"), 'r') as f:
-            args.update(json.load(f))
-    pull(args)
+    # args = {}
+    # if os.path.exists(os.path.join("C:\\", "ProgramData", "autoupdater", ".autopublish.config")):
+    #     with open(os.path.join("C:\\", "ProgramData", "autoupdater", ".autopublish.config"), 'r') as f:
+    #         args = json.load(f)
+    # if os.path.exists(os.path.join(args.get("Path", ""), ".autopublish")):
+    #     with open(os.path.join(args.get("Path", ""), ".autopublish"), 'r') as f:
+    #         args.update(json.load(f))
+    # pull(args)
+    init()
 
