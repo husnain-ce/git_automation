@@ -1,10 +1,22 @@
 How to use updater:
-    - Run configure.exe and input all data required
+    - Run updater.exe and input all data required
 
 How to build updater:
     - env/Scripts/activate.bat
     - pip install -r requirements.txt
     - pyinstaller build.spec
-    - pyinstaller build.service.spec
     
-    Move dist/configure.exe and dist/service.exe to parent folder
+    Move dist/updater.exe to parent folder
+
+Note:
+    - A directory is created in C:\ProgramData\autoupdater for all of the intermediate operations
+    - A file called .autopublish must be present and updated at the remote repository
+        {
+            "URL": "https://github.com/hello/world.git",
+            "Branch": "main",
+            "Tag": "v1.0.0",
+            "UpdateMessage": "Changes in v1.0.0: \r\n\r\n* Better everything!!"
+        }
+      The Tag and UpdateMessage need to be updated for updates to work
+    
+    - The updater will not update itself - the updater needs to be kept separate from the files to update
