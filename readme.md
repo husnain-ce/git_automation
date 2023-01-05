@@ -1,16 +1,16 @@
-How to use updater:
-    - Run updater.exe and input all data required
+#### How to use updater:
+- Run updater.exe and input all data required
 
 
-How to build updater:
-    - env/Scripts/activate.bat
-    - pip install -r requirements.txt
-    - pyinstaller build.spec
-    
-    Move dist/updater.exe to parent folder
+#### How to build updater:
+- env/Scripts/activate.bat
+- pip install -r requirements.txt
+- pyinstaller build.spec
+
+Move dist/updater.exe to parent folder
 
 
-Note:
+#### Note:
     - A directory is created in C:\ProgramData\autoupdater for all of the intermediate operations
     - A file called .autopublish must be present and updated at the remote repository
         {
