@@ -1,7 +1,7 @@
 altgraph==0.17.2
 cffi==1.15.1
 colored==1.4.3
-future==0.18.2
+future==0.18.3
 Gooey==1.0.8.1
 numpy==1.23.3
 pefile==2022.5.30
